@@ -1,0 +1,21 @@
+Sarah: Hi James, thanks for making time today. I wanted to follow up on where we stand with the ProjectFlow evaluation.
+
+James Whitfield: Thanks, Sarah. We've been testing the platform and the team likes the reporting features. But I have to be upfront — the pricing came in higher than we budgeted. We were expecting something closer to forty-five per seat, and your proposal is at sixty-two.
+
+Sarah: I understand that's a gap. Let me dig into what we can do on pricing. I'll send you a revised proposal with a ten percent discount by Thursday — that should bring it closer to your range.
+
+James Whitfield: I appreciate that. I also want to mention we're evaluating Asana as well. Their timeline view is solid, and the pricing is more in line with what we had in mind.
+
+Sarah: Fair enough. Asana has a good product, though I'd highlight that our resource allocation and workload analytics go a bit deeper for teams at your scale. Happy to walk your CTO through that comparison if it helps.
+
+James Whitfield: That could be useful. Ravi — our CTO — had some questions about the API integrations anyway. Let's get him on a call next Tuesday.
+
+Sarah: Perfect. I'll set that up for next Tuesday with Ravi included. I'll also include the integration documentation ahead of time so he can review it beforehand.
+
+James Whitfield: Sounds good. I'll be honest though, we're not in a rush to decide. We want to make sure we pick the right tool for the long haul, so we're taking our time with this one.
+
+Sarah: Totally understand, and that's the right approach. I'll make sure the revised proposal and the integration docs give you and Ravi everything you need to make a thorough comparison. Does next Tuesday at two o'clock work?
+
+James Whitfield: Two o'clock works. I'll have Ravi block the time. Thanks, Sarah.
+
+Sarah: Thanks, James. Talk Tuesday.
