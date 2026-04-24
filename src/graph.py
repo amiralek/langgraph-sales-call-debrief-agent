@@ -1,8 +1,8 @@
 from langgraph.graph import StateGraph, START, END
-from langgraph.checkpoint.memory import MemorySaver
+# from langgraph.checkpoint.memory import MemorySaver
 
-from .state import CallDebriefState
-from .nodes import (
+from src.state import CallDebriefState
+from src.nodes import (
     extract_info,
     update_crm,
     create_task,
@@ -89,11 +89,11 @@ def build_graph():
     # Without it, interrupt() raises an error because it has nowhere to save state.
     # MemorySaver = in-memory (dev only, state lost on restart)
     # In production: replace with PostgresSaver or RedisSaver — one line change here.
-    checkpointer = MemorySaver()
+    # checkpointer = MemorySaver()
 
     # compile() validates the graph (checks for disconnected nodes,
     # missing edges, etc.) and returns a runnable object.
-    return graph.compile(checkpointer=checkpointer)
+    return graph.compile()
 
 
 # The compiled graph — imported by main.py

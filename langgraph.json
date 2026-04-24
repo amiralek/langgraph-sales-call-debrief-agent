@@ -1,0 +1,7 @@
+{
+  "dependencies": ["."],
+  "graphs": {
+    "sales_debrief": "./src/graph.py:app"
+  },
+  "env": ".env"
+}
