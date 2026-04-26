@@ -1,0 +1,31 @@
+---
+config:
+  flowchart:
+    curve: linear
+---
+graph TD;
+	__start__([<p>__start__</p>]):::first
+	extract_info(extract_info)
+	update_crm(update_crm)
+	create_task(create_task)
+	draft_email(draft_email)
+	flag_risks(flag_risks)
+	human_review(human_review)
+	auto_approve(auto_approve)
+	apply_human_edits(apply_human_edits)
+	build_report(build_report)
+	__end__([<p>__end__</p>]):::last
+	__start__ --> extract_info;
+	apply_human_edits --> build_report;
+	auto_approve --> apply_human_edits;
+	create_task --> draft_email;
+	draft_email --> flag_risks;
+	extract_info --> update_crm;
+	flag_risks -.-> auto_approve;
+	flag_risks -.-> human_review;
+	human_review --> apply_human_edits;
+	update_crm --> create_task;
+	build_report --> __end__;
+	classDef default fill:#f2f0ff,line-height:1.2
+	classDef first fill-opacity:0
+	classDef last fill:#bfb6fc

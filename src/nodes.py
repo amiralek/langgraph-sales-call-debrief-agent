@@ -55,13 +55,21 @@ def extract_info(state: CallDebriefState) -> dict:
     prompt = EXTRACT_INFO_PROMPT.format(transcript=state["transcript"])
     response = llm.invoke([HumanMessage(content=prompt)])
     extracted = parse_json_response(response.content)
+
+    def pick(existing, extracted_value):
+        if extracted_value is None:
+            return existing
+        if isinstance(extracted_value, str) and extracted_value.strip() == "":
+            return existing
+        return extracted_value
+
     return {
-        "prospect_name": extracted["prospect_name"],
-        "company_name": extracted["company_name"],
-        "deal_stage": extracted["deal_stage"],
-        "objections": extracted["objections"],
-        "commitments": extracted["commitments"],
-        "next_steps": extracted["next_steps"],
+        "prospect_name": pick(state.get("prospect_name"), extracted.get("prospect_name")),
+        "company_name": pick(state.get("company_name"), extracted.get("company_name")),
+        "deal_stage": pick(state.get("deal_stage"), extracted.get("deal_stage")),
+        "objections": extracted.get("objections", []) or [],
+        "commitments": extracted.get("commitments", []) or [],
+        "next_steps": extracted.get("next_steps", []) or [],
     }
 
 
@@ -150,6 +158,28 @@ def auto_approve(state: CallDebriefState) -> dict:
     return {
         "human_approved": True,
         "human_edits": "",
+    }
+
+def apply_human_edits(state: CallDebriefState) -> dict:
+    if state.get("human_approved", False):
+        return {}
+
+    edits = state.get("human_edits", "").strip()
+    if not edits:
+        return {}
+
+    revised_email = (
+        f"{state['summary_email']}\n\n"
+        f"[Human review note: {edits}]"
+    )
+
+    updated_task = dict(state["follow_up_task"])
+    updated_task["priority"] = "high"
+    updated_task["description"] = f"{updated_task['description']} | HUMAN NOTE: {edits}"
+
+    return {
+        "summary_email": revised_email,
+        "follow_up_task": updated_task,
     }
 
 

@@ -3,6 +3,7 @@ from pathlib import Path
 from langgraph.types import Command
 from src.graph import app
 
+graph_mermaid = app.get_graph().draw_mermaid()
 
 def load_transcript() -> str:
     """
@@ -33,6 +34,8 @@ def run_agent():
 
     print("\n🚀 Starting Sales Call Debrief Agent...")
     print("=" * 60)
+   
+
 
     # ── PHASE 1: Initial run ──────────────────────────────────────
     # stream() runs the graph and yields events as each node completes.
@@ -111,6 +114,10 @@ def run_agent():
             encoding="utf-8"
         )
         print(f"\n💾 Report saved to {output_path}")
+
+        graph_path = Path("graph.mmd")
+        graph_path.write_text(graph_mermaid, encoding="utf-8")
+        print(f"🗺️ Graph Mermaid saved to {graph_path}")
     else:
         print("No final report found in state.")
 

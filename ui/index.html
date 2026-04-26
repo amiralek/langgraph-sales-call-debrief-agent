@@ -1,0 +1,662 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LangGraph Sales Debrief Demo</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #121933;
+      --panel-2: #182142;
+      --border: #2b376b;
+      --text: #e8ecff;
+      --muted: #9aa7d1;
+      --accent: #6ea8fe;
+      --success: #35c759;
+      --warn: #ffb020;
+      --danger: #ff6b6b;
+      --radius: 14px;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, Arial, sans-serif;
+      background: linear-gradient(180deg, #0a0f1d, #10162d);
+      color: var(--text);
+    }
+
+    .wrap {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 32px;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      margin-bottom: 24px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1.1fr 1fr;
+      gap: 20px;
+    }
+
+    .card {
+      background: rgba(18, 25, 51, 0.92);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.2);
+    }
+
+    .card h2 {
+      margin-top: 0;
+      font-size: 20px;
+    }
+
+    label {
+      display: block;
+      margin: 12px 0 6px;
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    input, select, textarea, button {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--panel-2);
+      color: var(--text);
+      padding: 12px 14px;
+      font: inherit;
+    }
+
+    textarea {
+      min-height: 180px;
+      resize: vertical;
+    }
+
+    button {
+      margin-top: 16px;
+      background: var(--accent);
+      color: #081120;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+    }
+
+    button:disabled {
+      opacity: .6;
+      cursor: not-allowed;
+    }
+
+    .status {
+      margin-top: 12px;
+      padding: 12px;
+      border-radius: 10px;
+      font-size: 14px;
+      border: 1px solid transparent;
+    }
+
+    .status.idle { background: #121933; color: var(--muted); border-color: var(--border); }
+    .status.running { background: rgba(110,168,254,.12); color: #b9d3ff; border-color: #4168b1; }
+    .status.success { background: rgba(53,199,89,.12); color: #aef0be; border-color: rgba(53,199,89,.35); }
+    .status.warn { background: rgba(255,176,32,.12); color: #ffd78a; border-color: rgba(255,176,32,.35); }
+    .status.error { background: rgba(255,107,107,.12); color: #ffc3c3; border-color: rgba(255,107,107,.35); }
+
+    .result-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .result-box {
+      background: #0f1730;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+    }
+
+    .result-box h3 {
+      margin: 0 0 10px;
+      font-size: 15px;
+      color: #c8d5ff;
+    }
+
+    .mono {
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 13px;
+      color: #d9e2ff;
+    }
+
+    .pill {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      margin-right: 8px;
+    }
+
+    .pill.low { background: rgba(53,199,89,.15); color: #9be6ad; }
+    .pill.medium { background: rgba(255,176,32,.15); color: #ffd78a; }
+    .pill.high { background: rgba(255,107,107,.15); color: #ffb3b3; }
+
+    .muted { color: var(--muted); }
+
+    .full {
+      grid-column: 1 / -1;
+    }
+
+    /* Graph SVG always fits its container */
+    #graphContainer {
+      overflow: visible;
+    }
+    #graphContainer svg {
+      display: block;
+      margin: 0 auto;
+    }
+
+    @media (max-width: 900px) {
+      .grid, .result-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+
+<!-- Mermaid for graph visualization -->
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Sales Call Debrief</h1>
+    <div class="subtitle">
+      Simple demo UI on top of a LangGraph backend. The workflow state and interrupt behavior are intentionally visible.
+    </div>
+
+    <div class="grid">
+      <section class="card">
+        <h2>Run workflow</h2>
+
+        <label for="transcript">Transcript</label>
+        <textarea id="transcript">Customer said they liked the demo but pricing feels high. They want legal to review the contract next week.</textarea>
+
+        <label for="dealStage">Deal stage</label>
+        <select id="dealStage">
+          <option value="discovery">discovery</option>
+          <option value="demo">demo</option>
+          <option value="proposal" selected>proposal</option>
+          <option value="negotiation">negotiation</option>
+        </select>
+
+        <label for="prospectName">Prospect name</label>
+        <input id="prospectName" value="Sara" />
+
+        <label for="companyName">Company name</label>
+        <input id="companyName" value="Acme Inc" />
+
+        <button id="runBtn">Run LangGraph workflow</button>
+
+        <div id="status" class="status idle">Idle. Ready to run.</div>
+      </section>
+
+            <section class="card">
+      <h2>Run summary</h2>
+      <div id="summary" class="muted">No run yet.</div>
+
+      <hr style="border:0;border-top:1px solid var(--border);margin:16px 0;" />
+
+      <h2 style="font-size:18px;">Human review</h2>
+      <div id="reviewMeta" class="muted">No interruption waiting.</div>
+
+      <label for="reviewInput">Approval or edits</label>
+      <textarea id="reviewInput" placeholder="Press Approve to continue, or type edits/instructions here before resuming."></textarea>
+
+      <button id="approveBtn" disabled>Approve / Resume</button>
+    </section>
+
+      <section class="card full">
+        <h2>Workflow output</h2>
+        <div class="result-grid">
+          <div class="result-box">
+            <h3>Risk</h3>
+            <div id="riskBox" class="muted">No data yet.</div>
+          </div>
+
+          <div class="result-box">
+            <h3>Interrupt state</h3>
+            <div id="interruptBox" class="muted">No interrupt.</div>
+          </div>
+
+          <div class="result-box">
+            <h3>CRM record</h3>
+            <div id="crmBox" class="mono">No data yet.</div>
+          </div>
+
+          <div class="result-box">
+            <h3>Follow-up task</h3>
+            <div id="taskBox" class="mono">No data yet.</div>
+          </div>
+
+          <div class="result-box full">
+            <h3>Summary email</h3>
+            <div id="emailBox" class="mono">No data yet.</div>
+          </div>
+
+          <div class="result-box full">
+            <h3>Raw response</h3>
+            <div id="rawBox" class="mono">No data yet.</div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+    <!-- Graph Visualization -->
+    <section class="card full">
+      <h2>Workflow Graph</h2>
+      <div id="graphContainer" style="min-height: 300px; background: var(--panel-2); border-radius: var(--radius); padding: 16px; border: 1px solid var(--border);">
+        Loading graph...
+      </div>
+      <button id="expandGraphBtn" style="margin-top:12px;background:var(--panel-2);color:var(--accent);border:1px solid var(--border);border-radius:10px;padding:8px 14px;cursor:pointer;font:inherit;font-weight:600;">🔍 Expand Graph</button>
+    </section>
+
+    <!-- Graph Magnifier Modal -->
+    <div id="graphModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:1000;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;">
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);width:100%;max-width:1200px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0;">
+          <h2 style="margin:0;font-size:20px;">Workflow Graph</h2>
+          <div style="display:flex;gap:10px;align-items:center;">
+            <button id="zoomOutBtn" style="background:var(--panel-2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:6px 12px;cursor:pointer;font:inherit;">−</button>
+            <span id="zoomLevel" style="font-size:14px;min-width:48px;text-align:center;">80%</span>
+            <button id="zoomInBtn" style="background:var(--panel-2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:6px 12px;cursor:pointer;font:inherit;">+</button>
+            <button id="closeModalBtn" style="background:var(--danger);color:#fff;border:none;border-radius:8px;padding:6px 14px;cursor:pointer;font:inherit;font-weight:700;margin-left:8px;">✕ Close</button>
+          </div>
+        </div>
+        <div id="modalGraphContainer" style="flex:1;overflow:auto;padding:20px;background:var(--panel-2);display:flex;align-items:center;justify-content:center;">
+          <div id="modalGraphInner">Loading...</div>
+        </div>
+      </div>
+    </div>
+
+  <script>
+    const API_BASE = "http://127.0.0.1:2024";
+    const ASSISTANT_ID = "sales_debrief";
+
+    const transcriptEl = document.getElementById("transcript");
+    const dealStageEl = document.getElementById("dealStage");
+    const prospectNameEl = document.getElementById("prospectName");
+    const companyNameEl = document.getElementById("companyName");
+    const runBtn = document.getElementById("runBtn");
+    const statusEl = document.getElementById("status");
+    const summaryEl = document.getElementById("summary");
+    const riskBox = document.getElementById("riskBox");
+    const interruptBox = document.getElementById("interruptBox");
+    const crmBox = document.getElementById("crmBox");
+    const taskBox = document.getElementById("taskBox");
+    const emailBox = document.getElementById("emailBox");
+    const rawBox = document.getElementById("rawBox");
+
+    const reviewMetaEl = document.getElementById("reviewMeta");
+    const reviewInputEl = document.getElementById("reviewInput");
+    const approveBtn = document.getElementById("approveBtn");
+
+    let currentThreadId = null;
+    let lastInterruptId = null;
+    let currentRunResponse = null;
+
+    mermaid.initialize({ startOnLoad: false, theme: 'dark' });
+
+    async function loadGraphText() {
+      const paths = ['graph.mmd', '../graph.mmd', './graph.mmd'];
+      for (const p of paths) {
+        try {
+          const res = await fetch(p);
+          if (res.ok) return await res.text();
+        } catch (e) {
+          // try next path
+        }
+      }
+      return null;
+    }
+
+    function renderGraph(mmdText) {
+      if (!mmdText || !mmdText.trim()) {
+        document.getElementById('graphContainer').innerHTML =
+          '<div style="color:var(--muted);padding:12px">No graph data available.</div>';
+        return;
+      }
+      mermaid.render('graphDiv', mmdText)
+        .then(({ svg }) => {
+          const container = document.getElementById('graphContainer');
+          container.innerHTML = svg;
+          container.style.minHeight = 'auto';
+
+          const svgEl = container.querySelector('svg');
+          if (svgEl) {
+            // Strip any inline max-width Mermaid injects
+            svgEl.style.removeProperty('max-width');
+            svgEl.style.maxWidth = 'none';
+
+            // Read viewBox to compute scaled size
+            const vb = svgEl.getAttribute('viewBox');
+            let w = 800, h = 400;
+            if (vb) {
+              const parts = vb.split(/\s+/).map(Number);
+              if (parts.length === 4 && parts[2] > 0 && parts[3] > 0) {
+                w = parts[2];
+                h = parts[3];
+              }
+            }
+            const scale = 0.3;
+            svgEl.style.width = (w * scale) + 'px';
+            svgEl.style.height = (h * scale) + 'px';
+          }
+        })
+        .catch((err) => {
+          console.error('Mermaid render failed:', err);
+          document.getElementById('graphContainer').innerHTML =
+            '<div style="color:var(--danger);padding:12px">Failed to render graph: ' +
+            (err.message || 'unknown error') + '</div>';
+        });
+    }
+
+    async function tryRenderGraph() {
+      const mmd = await loadGraphText();
+      if (mmd) {
+        renderGraph(mmd);
+      } else {
+        document.getElementById('graphContainer').innerHTML =
+          '<div style="color:var(--muted);padding:12px">Could not load graph.mmd. '
+          + 'Make sure the file exists in the project root and the server serves static files.</div>';
+      }
+    }
+
+    function setStatus(type, text) {
+      statusEl.className = `status ${type}`;
+      statusEl.textContent = text;
+    }
+
+    function pretty(value) {
+      if (value === undefined || value === null) return "null";
+      if (typeof value === "string") return value || "(empty)";
+      return JSON.stringify(value, null, 2);
+    }
+
+    function renderResult(data) {
+      const risk = (data.risk_level || "unknown").toLowerCase();
+      riskBox.innerHTML = `
+        <span class="pill ${risk}">${risk}</span>
+        <div style="margin-top:10px">${(data.risk_flags || []).join(", ") || "No risk flags"}</div>
+      `;
+
+      const interrupt = data.__interrupt__;
+      if (interrupt && interrupt.length) {
+        interruptBox.innerHTML = `
+          <div class="pill medium">INTERRUPTED</div>
+          <div style="margin-top:10px">The workflow paused for human review.</div>
+          <div class="mono" style="margin-top:10px">${pretty(interrupt)}</div>
+        `;
+      } else {
+        interruptBox.innerHTML = `<div class="pill low">NO INTERRUPT</div>`;
+      }
+
+      crmBox.textContent = pretty(data.crm_record);
+      taskBox.textContent = pretty(data.follow_up_task);
+      emailBox.textContent = pretty(data.summary_email);
+      rawBox.textContent = pretty(data);
+
+      summaryEl.innerHTML = `
+        <div><strong>Deal stage:</strong> ${data.deal_stage || "(empty)"}</div>
+        <div><strong>Prospect:</strong> ${data.prospect_name || "(empty)"}</div>
+        <div><strong>Company:</strong> ${data.company_name || "(empty)"}</div>
+        <div><strong>Risk level:</strong> ${data.risk_level || "(empty)"}</div>
+      `;
+    }
+
+async function createThread() {
+  const res = await fetch(`${API_BASE}/threads`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({})
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Thread creation failed: HTTP ${res.status}: ${text}`);
+  }
+
+  return await res.json();
+}
+
+async function runWorkflow() {
+  setStatus("running", "Creating thread and running LangGraph workflow...");
+  runBtn.disabled = true;
+  approveBtn.disabled = true;
+  reviewMetaEl.textContent = "No interruption waiting.";
+  reviewInputEl.value = "";
+  lastInterruptId = null;
+  currentRunResponse = null;
+
+  const payload = {
+    assistant_id: ASSISTANT_ID,
+    input: {
+      transcript: transcriptEl.value,
+      deal_stage: dealStageEl.value,
+      prospect_name: prospectNameEl.value,
+      company_name: companyNameEl.value,
+      objections: [],
+      commitments: [],
+      next_steps: [],
+      crm_record: {},
+      follow_up_task: {},
+      summary_email: "",
+      risk_flags: [],
+      risk_level: "low",
+      approval_status: "",
+      final_report: ""
+    }
+  };
+
+  try {
+    const thread = await createThread();
+    currentThreadId = thread.thread_id || thread.threadid;
+
+    if (!currentThreadId) {
+      throw new Error("Thread created but no thread_id returned.");
+    }
+
+    const res = await fetch(`${API_BASE}/threads/${currentThreadId}/runs/wait`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`HTTP ${res.status}: ${text}`);
+    }
+
+    const data = await res.json();
+    currentRunResponse = data;
+
+    // Fetch graph visualization
+    await tryRenderGraph();
+
+    renderResult(data);
+
+    const interrupt = data.__interrupt__;
+    if (interrupt && interrupt.length) {
+      lastInterruptId = interrupt[0].id;
+      reviewMetaEl.textContent = `Interrupted on thread: ${currentThreadId}`;
+      approveBtn.disabled = false;
+      setStatus("warn", "Run interrupted for human review. You can now approve or send edits.");
+    } else {
+      setStatus("success", "Run completed successfully.");
+    }
+  } catch (err) {
+    setStatus("error", `Request failed: ${err.message}`);
+    rawBox.textContent = String(err);
+  } finally {
+    runBtn.disabled = false;
+  }
+}
+
+async function resumeWorkflow() {
+  if (!currentThreadId) {
+    setStatus("error", "No active thread to resume.");
+    return;
+  }
+
+  setStatus("running", "Resuming interrupted workflow...");
+  approveBtn.disabled = true;
+  runBtn.disabled = true;
+
+  const reviewText = reviewInputEl.value.trim();
+  const payload = {
+    assistant_id: ASSISTANT_ID,
+    command: {
+      resume: reviewText === "" ? "approve" : reviewText
+    }
+  };
+
+  try {
+    const res = await fetch(`${API_BASE}/threads/${currentThreadId}/runs/wait`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`HTTP ${res.status}: ${text}`);
+    }
+
+    const data = await res.json();
+    currentRunResponse = data;
+
+    // Fetch graph visualization
+    await tryRenderGraph();
+
+    renderResult(data);
+
+    const interrupt = data.__interrupt__;
+    if (interrupt && interrupt.length) {
+      lastInterruptId = interrupt[0].id;
+      reviewMetaEl.textContent = `Still interrupted on thread: ${currentThreadId}`;
+      approveBtn.disabled = false;
+      setStatus("warn", "Workflow is still waiting for human input.");
+    } else {
+      lastInterruptId = null;
+      reviewMetaEl.textContent = `Review completed on thread: ${currentThreadId}`;
+      setStatus("success", "Workflow resumed and completed.");
+    }
+  } catch (err) {
+    approveBtn.disabled = false;
+    setStatus("error", `Resume failed: ${err.message}`);
+    rawBox.textContent = String(err);
+  } finally {
+    runBtn.disabled = false;
+  }
+}
+
+    runBtn.addEventListener("click", runWorkflow);
+    approveBtn.addEventListener("click", resumeWorkflow);
+
+    // ── Graph Magnifier ─────────────────────────────────────────
+    let currentMmdText = null;
+    let currentZoom = 0.8;
+
+    const graphModal = document.getElementById('graphModal');
+    const expandGraphBtn = document.getElementById('expandGraphBtn');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    const zoomInBtn = document.getElementById('zoomInBtn');
+    const zoomOutBtn = document.getElementById('zoomOutBtn');
+    const zoomLevelEl = document.getElementById('zoomLevel');
+    const modalGraphInner = document.getElementById('modalGraphInner');
+
+    function openGraphModal() {
+      if (!currentMmdText) return;
+      graphModal.style.display = 'flex';
+      renderModalGraph(currentZoom);
+    }
+
+    function closeGraphModal() {
+      graphModal.style.display = 'none';
+    }
+
+    function renderModalGraph(scale) {
+      if (!currentMmdText) {
+        modalGraphInner.innerHTML = '<div style="color:var(--muted)">No graph data.</div>';
+        return;
+      }
+      mermaid.render('modalGraphDiv', currentMmdText)
+        .then(({ svg }) => {
+          modalGraphInner.innerHTML = svg;
+          const svgEl = modalGraphInner.querySelector('svg');
+          if (svgEl) {
+            svgEl.style.removeProperty('max-width');
+            svgEl.style.maxWidth = 'none';
+            const vb = svgEl.getAttribute('viewBox');
+            let w = 800, h = 400;
+            if (vb) {
+              const parts = vb.split(/\s+/).map(Number);
+              if (parts.length === 4 && parts[2] > 0 && parts[3] > 0) {
+                w = parts[2];
+                h = parts[3];
+              }
+            }
+            svgEl.style.width = (w * scale) + 'px';
+            svgEl.style.height = (h * scale) + 'px';
+          }
+        })
+        .catch((err) => {
+          modalGraphInner.innerHTML = '<div style="color:var(--danger)">Render failed: ' + (err.message || 'unknown') + '</div>';
+        });
+    }
+
+    function updateZoom(delta) {
+      currentZoom = Math.max(0.2, Math.min(2.0, currentZoom + delta));
+      zoomLevelEl.textContent = Math.round(currentZoom * 100) + '%';
+      renderModalGraph(currentZoom);
+    }
+
+    expandGraphBtn.addEventListener('click', openGraphModal);
+    closeModalBtn.addEventListener('click', closeGraphModal);
+    zoomInBtn.addEventListener('click', () => updateZoom(0.1));
+    zoomOutBtn.addEventListener('click', () => updateZoom(-0.1));
+
+    // Close modal on backdrop click or Escape
+    graphModal.addEventListener('click', (e) => {
+      if (e.target === graphModal) closeGraphModal();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && graphModal.style.display === 'flex') closeGraphModal();
+    });
+
+    // Hook into main graph loader to remember MMD text
+    const originalRenderGraph = renderGraph;
+    renderGraph = function(mmdText) {
+      currentMmdText = mmdText;
+      originalRenderGraph(mmdText);
+    };
+
+  </script>
+</body>
+</html>

@@ -1,5 +1,4 @@
 from langgraph.graph import StateGraph, START, END
-# from langgraph.checkpoint.memory import MemorySaver
 
 from src.state import CallDebriefState
 from src.nodes import (
@@ -10,6 +9,7 @@ from src.nodes import (
     flag_risks,
     human_review,
     auto_approve,
+    apply_human_edits,
     build_report,
 )
 
@@ -51,6 +51,7 @@ def build_graph():
     graph.add_node("flag_risks",    flag_risks)
     graph.add_node("human_review",  human_review)
     graph.add_node("auto_approve",  auto_approve)
+    graph.add_node("apply_human_edits", apply_human_edits)
     graph.add_node("build_report",  build_report)
 
     # Step 3: Draw the edges — the main sequential flow
@@ -79,20 +80,15 @@ def build_graph():
     )
 
     # Step 5: Both paths converge at build_report
-    graph.add_edge("human_review", "build_report")
-    graph.add_edge("auto_approve", "build_report")
+    graph.add_edge("human_review", "apply_human_edits")
+    graph.add_edge("auto_approve", "apply_human_edits")
+    graph.add_edge("apply_human_edits", "build_report")
     graph.add_edge("build_report", END)
-
-    # Step 6: Attach the checkpointer and compile
-    # WHY CHECKPOINTER IS MANDATORY:
-    # interrupt() in human_review node serializes state to this checkpointer.
-    # Without it, interrupt() raises an error because it has nowhere to save state.
-    # MemorySaver = in-memory (dev only, state lost on restart)
-    # In production: replace with PostgresSaver or RedisSaver — one line change here.
-    # checkpointer = MemorySaver()
 
     # compile() validates the graph (checks for disconnected nodes,
     # missing edges, etc.) and returns a runnable object.
+    # NOTE: When running via `langgraph dev`, the server injects its own
+    # checkpointer automatically. Do NOT pass one here.
     return graph.compile()
 
 
